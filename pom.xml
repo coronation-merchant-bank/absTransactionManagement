@@ -54,13 +54,6 @@
 			<version>6.1.0</version> <!-- Adjust version as needed -->
 			<scope>provided</scope>
 		</dependency>
-
-		<dependency>
-    		<groupId>org.projectlombok</groupId>
-    		<artifactId>lombok</artifactId>
-    		<version>1.18.34</version> <!-- or any compatible version -->
-    		<scope>provided</scope>
-		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-xml</artifactId>
@@ -92,6 +85,16 @@
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.11.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20231013</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
