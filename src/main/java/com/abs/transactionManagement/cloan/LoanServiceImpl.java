@@ -1,16 +1,15 @@
 package com.abs.transactionManagement.cloan;
 
+import com.abs.transactionManagement.config.CustomRestTemplate;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.json.XML;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
@@ -20,10 +19,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class LoanServiceImpl implements LoanService {
-    private final RestClient restClient;
+    private final RestTemplate restTemplate = CustomRestTemplate.restTemplate();
     private final Gson gson;
 
-    @Value("${finacle.liquidateLoan.url}")
+    @Value("${finacle.soap.url}")
     private String liquidateLoanUrl;
 
     @Override
@@ -31,11 +30,13 @@ public class LoanServiceImpl implements LoanService {
         String xmlRequest = buildPreLiquidateXmlRequest(loanPreLiquidateRequest);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
-        ResponseEntity<String> responseEntity = restClient.post()
-                .uri(liquidateLoanUrl)
-                .headers(httpHeaders -> httpHeaders.addAll(headers))
-                .body(xmlRequest)
-                .retrieve().toEntity(String.class);
+        HttpEntity<String> httpEntity = new HttpEntity<>(xmlRequest, headers);
+        ResponseEntity<String> responseEntity = restTemplate.exchange(
+                liquidateLoanUrl,
+                HttpMethod.POST,
+                httpEntity,
+                String.class
+        );
 
         log.info("Finacle Pre-liquidate Loan Response :: httpStatus: {}, body: {}",
                 responseEntity.getStatusCode(),

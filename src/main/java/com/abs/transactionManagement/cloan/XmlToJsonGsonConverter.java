@@ -3,9 +3,11 @@ package com.abs.transactionManagement.cloan;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.json.XML;
 
+@Slf4j
 public class XmlToJsonGsonConverter {
     public static void main(String[] args) {
         String xml = """
@@ -84,7 +86,7 @@ public class XmlToJsonGsonConverter {
                 .create();
         String jsonOutput = gson.toJson(new ResponseData(requestId, status, code, message));
 
-        System.out.println(jsonOutput);
+        log.info("JSON Output :: {}", jsonOutput);
     }
 
     // Helper class for JSON conversion
