@@ -38,7 +38,6 @@ import java.util.UUID;
 @Slf4j
 public class AbsService {
 
-    @Autowired
     private final JdbcTemplate jdbcTemplate;
 
     @Value("${depositCloseUrl}")
@@ -47,34 +46,32 @@ public class AbsService {
     @Value("${addLoanUrl}")
     private String addLoanUrl;
 
-
-    private final RestTemplate restTemplate = CustomRestTemplate.restTemplate();
-
+    @Autowired
     public AbsService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     public List<AccountInfoDto> getAccountInfo(String accountNum) {
         String sql = """
-                SELECT DISTINCT
-                foracid AS loanId, 
-                (SELECT foracid FROM tbaadm.gam WHERE acid = b.op_acid) AS acctNumber,    
-                acct_name AS customerName,    
-                b.EI_PERD_START_DATE AS startDate,    
-                b.EI_PERD_END_DATE AS maturityDate,    
-                DIS_AMT AS amount,    
-                (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.op_acid) AS businessUnit,   
-                (SELECT interest_rate FROM tbaadm.eit x WHERE x.entity_id = a.acid) AS fullRate,
-                (SELECT ref_desc FROM tbaadm.rct 
-                 WHERE ref_code = (SELECT free_code_2 FROM tbaadm.gac WHERE acid = b.op_acid )
-                 AND ROWNUM = 1) AS relationshipOfficer 
-            FROM 
-                tbaadm.gam a 
-            JOIN 
-                tbaadm.lam b ON a.acid = b.acid
-            WHERE 
-                foracid = ?
-            """;
+                    SELECT DISTINCT
+                    foracid AS loanId,
+                    (SELECT foracid FROM tbaadm.gam WHERE acid = b.op_acid) AS acctNumber,
+                    acct_name AS customerName,
+                    b.EI_PERD_START_DATE AS startDate,
+                    b.EI_PERD_END_DATE AS maturityDate,
+                    DIS_AMT AS amount,
+                    (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.op_acid) AS businessUnit,
+                    (SELECT interest_rate FROM tbaadm.eit x WHERE x.entity_id = a.acid) AS fullRate,
+                    (SELECT ref_desc FROM tbaadm.rct
+                     WHERE ref_code = (SELECT free_code_2 FROM tbaadm.gac WHERE acid = b.op_acid )
+                     AND ROWNUM = 1) AS relationshipOfficer
+                FROM
+                    tbaadm.gam a
+                JOIN
+                    tbaadm.lam b ON a.acid = b.acid
+                WHERE
+                    foracid = ?
+                """;
 
         return jdbcTemplate.query(sql, new Object[]{accountNum}, (rs, rowNum) -> {
             AccountInfoDto dto = new AccountInfoDto();
@@ -93,24 +90,20 @@ public class AbsService {
 
     public List<DepositAccountDetails> getDepositAccountInfo(String accountNum) {
         String sql = """
-                SELECT DISTINCT\s
-                                                                         a.foracid AS investmentId,
-                                                                          (SELECT x.foracid FROM tbaadm.gam x WHERE x.acid = b.repayment_acid) AS acctNumber,   \s
-                                                                          acct_name AS customerName,\s
-                                                                          b.open_effective_date AS openEffectiveDate,   \s
-                                                                          b.maturity_date AS maturityDate,\s
-                                                                          b.deposit_amount AS depositAmount,\s
-                                                                          (SELECT y.interest_rate FROM tbaadm.eit y WHERE y.entity_id = a.acid) AS contractRate,     \s
-                                                                          (SELECT gac.free_code_1 FROM tbaadm.gac WHERE gac.acid = b.repayment_acid) AS businessUnit,   \s
-                                                                          (SELECT ref_desc FROM tbaadm.rct\s
-                                                                           WHERE ref_code = (SELECT gac.free_code_2 FROM tbaadm.gac WHERE gac.acid = b.repayment_acid)     \s
-                                                                           AND ROWNUM = 1) AS relationshipOfficer\s
-                                                                      FROM\s
-                                                                          tbaadm.gam a,\s
-                                                                          tbaadm.tam b\s
-                                                                      WHERE\s
-                                                                          a.acid = b.acid\s
-                                                                          AND a.foracid = ?""";
+                SELECT DISTINCT a.foracid AS investmentId,
+                    (SELECT x.foracid FROM tbaadm.gam x WHERE x.acid = b.repayment_acid) AS acctNumber,
+                    acct_name AS customerName,
+                    b.open_effective_date AS openEffectiveDate,
+                    b.maturity_date AS maturityDate,
+                    b.deposit_amount AS depositAmount,
+                    (SELECT y.interest_rate FROM tbaadm.eit y WHERE y.entity_id = a.acid) AS contractRate,
+                    (SELECT gac.free_code_1 FROM tbaadm.gac WHERE gac.acid = b.repayment_acid) AS businessUnit,
+                    (SELECT ref_desc FROM tbaadm.rct
+                     WHERE ref_code = (SELECT gac.free_code_2 FROM tbaadm.gac WHERE gac.acid = b.repayment_acid)
+                     AND ROWNUM = 1) AS relationshipOfficer
+                FROM tbaadm.gam a, tbaadm.tam b
+                WHERE a.acid = b.acid AND a.foracid = ?
+                """;
 
         return jdbcTemplate.query(sql, new Object[]{accountNum}, (rs, rowNum) -> {
             DepositAccountDetails dto = new DepositAccountDetails();
@@ -129,28 +122,28 @@ public class AbsService {
 
     public List<AccountInfoDto> getZeroBalanceAccountInfo(String accountNum) {
         String sql = """
-        SELECT DISTINCT
-            foracid AS Account,
-            acct_name AS customerName,
-            b.EI_PERD_START_DATE,
-            b.EI_PERD_END_DATE,
-            a.clr_bal_amt,
-            full_rate AS contractRate,
-            (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.op_acid) AS businessUnit,
-            (SELECT ref_desc 
-             FROM tbaadm.rct 
-             WHERE ref_code = (
-                 SELECT free_code_2 
-                 FROM tbaadm.gac 
-                 WHERE acid = b.op_acid
-             ) 
-             FETCH FIRST 1 ROWS ONLY) AS relationshipOfficer
-        FROM tbaadm.gam a
-        JOIN tbaadm.lam b ON a.acid = b.acid
-        JOIN tbaadm.idt c ON b.acid = c.ENTITY_ID
-        WHERE foracid = ?
-        AND clr_bal_amt = 0
-    """;
+                    SELECT DISTINCT
+                        foracid AS Account,
+                        acct_name AS customerName,
+                        b.EI_PERD_START_DATE,
+                        b.EI_PERD_END_DATE,
+                        a.clr_bal_amt,
+                        full_rate AS contractRate,
+                        (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.op_acid) AS businessUnit,
+                        (SELECT ref_desc
+                         FROM tbaadm.rct
+                         WHERE ref_code = (
+                             SELECT free_code_2
+                             FROM tbaadm.gac
+                             WHERE acid = b.op_acid
+                         )
+                         FETCH FIRST 1 ROWS ONLY) AS relationshipOfficer
+                    FROM tbaadm.gam a
+                    JOIN tbaadm.lam b ON a.acid = b.acid
+                    JOIN tbaadm.idt c ON b.acid = c.ENTITY_ID
+                    WHERE foracid = ?
+                    AND clr_bal_amt = 0
+                """;
 
         return jdbcTemplate.query(sql, new Object[]{accountNum}, (rs, rowNum) -> {
             AccountInfoDto dto = new AccountInfoDto();
@@ -168,28 +161,28 @@ public class AbsService {
 
     public List<AccountInfoDto> getZeroBalanceDepositInfo(String accountNum) {
         String sql = """
-        SELECT DISTINCT
-            foracid AS Account,
-            acct_name AS customerName,
-            b.open_effective_date,
-            b.maturity_date,
-            clr_bal_amt,
-            full_rate AS contractRate,
-            (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.repayment_acid) AS businessUnit,
-            (SELECT ref_desc 
-             FROM tbaadm.rct 
-             WHERE ref_code = (
-                 SELECT free_code_2 
-                 FROM tbaadm.gac 
-                 WHERE acid = b.repayment_acid
-             ) 
-             FETCH FIRST 1 ROWS ONLY) AS relationshipOfficer
-        FROM tbaadm.gam a
-        JOIN tbaadm.tam b ON a.acid = b.acid
-        JOIN tbaadm.idt c ON b.acid = c.ENTITY_ID
-        WHERE foracid = ?
-        AND clr_bal_amt = 0
-    """;
+                    SELECT DISTINCT
+                        foracid AS Account,
+                        acct_name AS customerName,
+                        b.open_effective_date,
+                        b.maturity_date,
+                        clr_bal_amt,
+                        full_rate AS contractRate,
+                        (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.repayment_acid) AS businessUnit,
+                        (SELECT ref_desc
+                         FROM tbaadm.rct
+                         WHERE ref_code = (
+                             SELECT free_code_2
+                             FROM tbaadm.gac
+                             WHERE acid = b.repayment_acid
+                         )
+                         FETCH FIRST 1 ROWS ONLY) AS relationshipOfficer
+                    FROM tbaadm.gam a
+                    JOIN tbaadm.tam b ON a.acid = b.acid
+                    JOIN tbaadm.idt c ON b.acid = c.ENTITY_ID
+                    WHERE foracid = ?
+                    AND clr_bal_amt = 0
+                """;
 
         return jdbcTemplate.query(sql, new Object[]{accountNum}, (rs, rowNum) -> {
             AccountInfoDto dto = new AccountInfoDto();
@@ -203,44 +196,43 @@ public class AbsService {
             dto.setRelationshipOfficer(rs.getString("relationshipOfficer")); // Matches alias in SQL
 //            dto.setDepositAmount(rs.getBigDecimal("depositAmount"));
 //            dto.setAcctNumber(rs.getString("acctNumber"));
-        
+
             return dto;
         });
     }
 
-    public List<LoanLiquidationResponse> confirmLoanLiquidation(String accountNum){
+    public List<LoanLiquidationResponse> confirmLoanLiquidation(String accountNum) {
         String sql = """
-    SELECT DISTINCT
-        foracid AS loanId,
-        (SELECT foracid FROM tbaadm.gam WHERE acid = b.op_acid) AS acctNumber,
-        acct_name AS customerName,
-        b.EI_PERD_START_DATE AS startDate,
-        b.EI_PERD_END_DATE AS maturityDate,
-        DIS_AMT AS amount,
-        (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.op_acid) AS businessUnit,
-        (SELECT full_rate 
-         FROM tbaadm.idt x 
-         WHERE x.entity_id = c.entity_id 
-         AND serial_num = (SELECT MAX(serial_num) FROM tbaadm.idt WHERE entity_id = x.entity_id) 
-         AND ROWNUM = 1) AS fullRate,
-        (SELECT ref_desc 
-         FROM tbaadm.rct 
-         WHERE ref_code = (
-             SELECT free_code_2 
-             FROM tbaadm.gac 
-             WHERE acid = b.op_acid
-         ) 
-         AND ROWNUM = 1) AS relationshipOfficer
-    FROM tbaadm.gam a
-    JOIN tbaadm.lam b ON a.acid = b.acid
-    JOIN tbaadm.idt c ON b.acid = c.entity_id
-    WHERE ((payoff_flg = 'Y' AND payoff_date IS NOT NULL) 
-           OR (acct_cls_flg = 'Y' AND acct_cls_date IS NOT NULL) 
-           OR clr_bal_amt = 0) 
-      AND foracid = ?
-    """;
+                SELECT DISTINCT
+                    foracid AS loanId,
+                    (SELECT foracid FROM tbaadm.gam WHERE acid = b.op_acid) AS acctNumber,
+                    acct_name AS customerName,
+                    b.EI_PERD_START_DATE AS startDate,
+                    b.EI_PERD_END_DATE AS maturityDate,
+                    DIS_AMT AS amount,
+                    (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.op_acid) AS businessUnit,
+                    (SELECT full_rate
+                     FROM tbaadm.idt x
+                     WHERE x.entity_id = c.entity_id
+                     AND serial_num = (SELECT MAX(serial_num) FROM tbaadm.idt WHERE entity_id = x.entity_id)
+                     AND ROWNUM = 1) AS fullRate,
+                    (SELECT ref_desc
+                     FROM tbaadm.rct
+                     WHERE ref_code = (
+                         SELECT free_code_2
+                         FROM tbaadm.gac
+                         WHERE acid = b.op_acid
+                     )
+                     AND ROWNUM = 1) AS relationshipOfficer
+                FROM tbaadm.gam a
+                JOIN tbaadm.lam b ON a.acid = b.acid
+                JOIN tbaadm.idt c ON b.acid = c.entity_id
+                WHERE ((payoff_flg = 'Y' AND payoff_date IS NOT NULL) 
+                       OR (acct_cls_flg = 'Y' AND acct_cls_date IS NOT NULL) 
+                       OR clr_bal_amt = 0) 
+                  AND foracid = ?
+                """;
 
-        
 
         return jdbcTemplate.query(sql, new Object[]{accountNum}, (rs, rowNum) -> {
             LoanLiquidationResponse dto = new LoanLiquidationResponse();
@@ -260,36 +252,36 @@ public class AbsService {
         });
     }
 
-    public List<AccountInfoDto> confirmDepositLiquidation(String accountNum){
+    public List<AccountInfoDto> confirmDepositLiquidation(String accountNum) {
         String sql = """
-    SELECT DISTINCT
-        foracid AS loanId,
-        (SELECT foracid FROM tbaadm.gam WHERE acid = b.repayment_acid) AS acctNumber,
-        acct_name AS customerName,
-        b.open_effective_date AS openEffectiveDate,
-        b.maturity_date AS maturityDate,
-        deposit_amount AS depositAmount,
-        (SELECT full_rate 
-         FROM tbaadm.idt x 
-         WHERE x.entity_id = c.entity_id 
-         AND serial_num = (SELECT MAX(serial_num) FROM tbaadm.idt WHERE entity_id = x.entity_id) 
-         AND ROWNUM = 1) AS contractRate,
-        (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.repayment_acid) AS businessUnit,
-        (SELECT ref_desc 
-         FROM tbaadm.rct 
-         WHERE ref_code = (
-             SELECT free_code_2 
-             FROM tbaadm.gac 
-             WHERE acid = b.repayment_acid
-         ) 
-         AND ROWNUM = 1) AS relationshipOfficer
-    FROM tbaadm.gam a
-    JOIN tbaadm.tam b ON a.acid = b.acid
-    JOIN tbaadm.idt c ON b.acid = c.entity_id
-    WHERE acct_cls_flg = 'Y' 
-      AND acct_cls_date IS NOT NULL 
-      AND foracid = ?
-    """;
+                SELECT DISTINCT
+                    foracid AS loanId,
+                    (SELECT foracid FROM tbaadm.gam WHERE acid = b.repayment_acid) AS acctNumber,
+                    acct_name AS customerName,
+                    b.open_effective_date AS openEffectiveDate,
+                    b.maturity_date AS maturityDate,
+                    deposit_amount AS depositAmount,
+                    (SELECT full_rate
+                     FROM tbaadm.idt x
+                     WHERE x.entity_id = c.entity_id
+                     AND serial_num = (SELECT MAX(serial_num) FROM tbaadm.idt WHERE entity_id = x.entity_id)
+                     AND ROWNUM = 1) AS contractRate,
+                    (SELECT free_code_1 FROM tbaadm.gac WHERE acid = b.repayment_acid) AS businessUnit,
+                    (SELECT ref_desc
+                     FROM tbaadm.rct
+                     WHERE ref_code = (
+                         SELECT free_code_2
+                         FROM tbaadm.gac
+                         WHERE acid = b.repayment_acid
+                     )
+                     AND ROWNUM = 1) AS relationshipOfficer
+                FROM tbaadm.gam a
+                JOIN tbaadm.tam b ON a.acid = b.acid
+                JOIN tbaadm.idt c ON b.acid = c.entity_id
+                WHERE acct_cls_flg = 'Y'
+                  AND acct_cls_date IS NOT NULL
+                  AND foracid = ?
+                """;
 
         return jdbcTemplate.query(sql, new Object[]{accountNum}, (rs, rowNum) -> {
             AccountInfoDto dto = new AccountInfoDto();
@@ -345,7 +337,7 @@ public class AbsService {
         }
     }
 
-    public String addLoan(Fixml request){
+    public String addLoan(Fixml request) {
         ObjectMapper mapper = new ObjectMapper();
         log.info("Request: {}", request);
 
@@ -387,7 +379,7 @@ public class AbsService {
         }
     }
 
-    private Fixml createFixmlRequest(LocalRequest request){
+    private Fixml createFixmlRequest(LocalRequest request) {
         MessageKey messageKey = MessageKey.builder()
                 .requestUUID("Req_" + UUID.randomUUID())
                 .serviceRequestId("DepAcctClose")
@@ -443,83 +435,79 @@ public class AbsService {
                 .depAcctCloseRequest(closeRequest)
                 .build();
 
-        return  Fixml.builder()
+        return Fixml.builder()
                 .body(body)
                 .header(header)
                 .build();
     }
 
 
-
-
-
-
-        public OkHttpClient createOkHttpClient() throws Exception {
-            // Trust manager that accepts all certificates
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509ExtendedTrustManager() {
-                        @Override
-                        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-                        }
-
-                        @Override
-                        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-                        }
-
-                        @Override
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[0];
-                        }
-
-                        @Override
-                        public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-                        }
-
-                        @Override
-                        public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-                        }
-
-                        @Override
-                        public void checkClientTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-                        }
-
-                        @Override
-                        public void checkServerTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-                        }
+    public OkHttpClient createOkHttpClient() throws Exception {
+        // Trust manager that accepts all certificates
+        TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509ExtendedTrustManager() {
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
                     }
-            };
 
-            // Set up SSL context with custom trust manager
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+                    }
 
-            // Create an OkHttpClient.Builder and configure supported protocols
-            OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                    .sslSocketFactory(sslContext.getSocketFactory(), (X509ExtendedTrustManager) trustAllCerts[0])
-                    .hostnameVerifier((hostname, session) -> true);  // Trust all hostnames
+                    @Override
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
 
-            builder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
-            // Configure the client to support TLS 1.0, 1.1, 1.2, and 1.3
-            builder.connectionSpecs(java.util.Arrays.asList(
-                    new okhttp3.ConnectionSpec.Builder(okhttp3.ConnectionSpec.MODERN_TLS)
-                            .tlsVersions(TlsVersion.TLS_1_1, TlsVersion.TLS_1_2, TlsVersion.TLS_1_1, TlsVersion.TLS_1_0, TlsVersion.TLS_1_2, TlsVersion.TLS_1_3, TlsVersion.SSL_3_0)
-                            .allEnabledCipherSuites()
-                            .build(),
-                    okhttp3.ConnectionSpec.CLEARTEXT));
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+                    }
 
-            return builder.build();
-        }
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+                    }
 
-        public static String serializeToJson(Object object) throws JsonProcessingException {
-            ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
-        }
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+                    }
+                }
+        };
+
+        // Set up SSL context with custom trust manager
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+
+        // Create an OkHttpClient.Builder and configure supported protocols
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.getSocketFactory(), (X509ExtendedTrustManager) trustAllCerts[0])
+                .hostnameVerifier((hostname, session) -> true);  // Trust all hostnames
+
+        builder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
+        // Configure the client to support TLS 1.0, 1.1, 1.2, and 1.3
+        builder.connectionSpecs(java.util.Arrays.asList(
+                new okhttp3.ConnectionSpec.Builder(okhttp3.ConnectionSpec.MODERN_TLS)
+                        .tlsVersions(TlsVersion.TLS_1_1, TlsVersion.TLS_1_2, TlsVersion.TLS_1_1, TlsVersion.TLS_1_0, TlsVersion.TLS_1_2, TlsVersion.TLS_1_3, TlsVersion.SSL_3_0)
+                        .allEnabledCipherSuites()
+                        .build(),
+                okhttp3.ConnectionSpec.CLEARTEXT));
+
+        return builder.build();
+    }
+
+    public static String serializeToJson(Object object) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
+    }
 
     public String serializeToXml(Object obj) throws Exception {
         XmlMapper xmlMapper = new XmlMapper();
         return xmlMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
     }
-    }
+}
 
 
 
