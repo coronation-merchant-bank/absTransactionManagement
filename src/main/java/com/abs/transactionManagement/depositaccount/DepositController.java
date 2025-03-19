@@ -1,4 +1,4 @@
-package com.abs.transactionManagement.cloan;
+package com.abs.transactionManagement.depositaccount;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ public class DepositController {
     private final DepositService depositService;
 
     @PostMapping("/close")
-    public DepositLiquidationResponse closeDepositAccount(@RequestBody @Valid DepositLiquidationRequest depositLiquidationRequest) {
-        return depositService.preLiquidateDeposit(depositLiquidationRequest);
+    public CloseDepositAccResponse closeDepositAccount(@RequestBody @Valid CloseDepositAccRequest closeDepositAccRequest) {
+        return depositService.closeDepositAccount(closeDepositAccRequest);
     }
 }

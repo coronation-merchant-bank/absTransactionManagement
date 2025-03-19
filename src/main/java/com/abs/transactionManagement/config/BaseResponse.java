@@ -1,4 +1,4 @@
-package com.abs.transactionManagement.cloan;
+package com.abs.transactionManagement.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -9,11 +9,11 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class LoanPreLiquidateResponse {
-    private String requestId;
-    private String status;
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class BaseResponse<T> {
+    private Boolean flag;
     private String code;
     private String message;
+    private T data;
 }

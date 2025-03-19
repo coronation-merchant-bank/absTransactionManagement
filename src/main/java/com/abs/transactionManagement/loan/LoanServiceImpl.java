@@ -1,18 +1,24 @@
-package com.abs.transactionManagement.cloan;
+package com.abs.transactionManagement.loan;
 
 import com.abs.transactionManagement.config.CustomRestTemplate;
+import com.abs.transactionManagement.exceptionhandler.CustomException;
+import com.abs.transactionManagement.finacle.FinacleUtil;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.XML;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -22,17 +28,22 @@ public class LoanServiceImpl implements LoanService {
     private final RestTemplate restTemplate = CustomRestTemplate.restTemplate();
     private final Gson gson;
 
-    @Value("${finacle.soap.url}")
-    private String liquidateLoanUrl;
+    @Value("${finacle.soap.address}")
+    private String soapAddress;
+
+    @Value("${finacle.soap.action}")
+    private String soapAction;
 
     @Override
-    public LoanPreLiquidateResponse preLiquidateLoan(LoanPreLiquidateRequest loanPreLiquidateRequest) {
-        String xmlRequest = buildPreLiquidateXmlRequest(loanPreLiquidateRequest);
+    public PreLiquidateLoanResponse preLiquidateLoan(PreLiquidateLoanRequest preLiquidateLoanRequest) {
+        String requestId = UUID.randomUUID().toString();
+        String xmlRequest = buildPreLiquidateXmlRequest(preLiquidateLoanRequest, requestId);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
+        headers.set("SOAPAction", soapAction);
         HttpEntity<String> httpEntity = new HttpEntity<>(xmlRequest, headers);
         ResponseEntity<String> responseEntity = restTemplate.exchange(
-                liquidateLoanUrl,
+                soapAddress,
                 HttpMethod.POST,
                 httpEntity,
                 String.class
@@ -43,12 +54,15 @@ public class LoanServiceImpl implements LoanService {
                 responseEntity.getBody()
         );
         String xmlResponse = responseEntity.getBody();
-        return convertLoanXmlResponseToJson(xmlResponse);
+        xmlResponse = FinacleUtil.extractSoapResponseBody(xmlResponse);
+        PreLiquidateLoanResponse response = convertLoanXmlResponseToJson(xmlResponse);
+        response.setRequestId(requestId);
+
+        return response;
     }
 
-    private String buildPreLiquidateXmlRequest(LoanPreLiquidateRequest loanPreLiquidateRequest) {
-        return MessageFormat.format("""
-                <?xml version="1.0" encoding="UTF-8"?>
+    private String buildPreLiquidateXmlRequest(PreLiquidateLoanRequest preLiquidateLoanRequest, String requestId) {
+        String fixmlRequest = MessageFormat.format("""
                 <FIXML xsi:schemaLocation="http://www.finacle.com/fixml executeFinacleScript.xsd" xmlns="http://www.finacle.com/fixml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                     <Header>
                         <RequestHeader>
@@ -97,14 +111,15 @@ public class LoanServiceImpl implements LoanService {
                     </Body>
                 </FIXML>
                 """,
-                UUID.randomUUID().toString(),
+                requestId,
                 LocalDateTime.now().toString(),
-                loanPreLiquidateRequest.getLoanAccount(),
-                loanPreLiquidateRequest.getFundAccount()
+                preLiquidateLoanRequest.getLoanAccount(),
+                preLiquidateLoanRequest.getFundAccount()
         );
+        return FinacleUtil.wrapSoapRequestEnvelop(fixmlRequest);
     }
 
-    private LoanPreLiquidateResponse convertLoanXmlResponseToJson(String xmlResponse) {
+    private PreLiquidateLoanResponse convertLoanXmlResponseToJson(String xmlResponse) {
         // Convert XML to JSONObject
         JSONObject jsonObject = XML.toJSONObject(xmlResponse);
 
@@ -113,6 +128,29 @@ public class LoanServiceImpl implements LoanService {
                 .getJSONObject("Header")
                 .getJSONObject("ResponseHeader")
                 .getJSONObject("RequestMessageKey");
+
+        JSONObject error = jsonObject.getJSONObject("FIXML")
+                .getJSONObject("Body")
+                .optJSONObject("Error", null);
+
+        if (error != null) {
+            JSONArray errorDetails = error.getJSONObject("FIBusinessException")
+                    .getJSONArray("ErrorDetail");
+            int l = errorDetails.length();
+            List<String> codes = new ArrayList<>();
+            List<String> messages = new ArrayList<>();
+            for (int i = 0; i < l; i++) {
+                JSONObject errorDetail = errorDetails.getJSONObject(i);
+                codes.add(errorDetail.optString("ErrorCode", ""));
+                messages.add(errorDetail.optString("ErrorDesc", ""));
+            }
+            String code = String.join(" | ", codes);
+            String message = String.join(" | ", messages);
+
+            code = StringUtils.hasText(code) ? code : "0005";
+            message = StringUtils.hasText(message) ? message : "Request error";
+            throw new CustomException(HttpStatus.BAD_REQUEST, code, message);
+        }
 
         JSONObject executeFinacleScriptCustomData = jsonObject.getJSONObject("FIXML")
                 .getJSONObject("Body")
@@ -130,7 +168,7 @@ public class LoanServiceImpl implements LoanService {
         String message = executeFinacleScriptCustomData.optString("RESULT_MSG", "");
 
         // Convert to JSON using Gson with pretty printing
-        LoanPreLiquidateResponse loanPreLiquidateResponse = LoanPreLiquidateResponse.builder()
+        PreLiquidateLoanResponse loanPreLiquidateResponse = PreLiquidateLoanResponse.builder()
                 .code(code)
                 .status(status)
                 .requestId(requestId)

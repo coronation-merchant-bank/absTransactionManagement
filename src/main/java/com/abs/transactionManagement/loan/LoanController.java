@@ -1,4 +1,4 @@
-package com.abs.transactionManagement.cloan;
+package com.abs.transactionManagement.loan;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ public class LoanController {
     private final LoanService loanService;
 
     @PostMapping("/pre-liquidate")
-    public LoanPreLiquidateResponse preLiquidateLoan(@RequestBody @Valid LoanPreLiquidateRequest loanPreLiquidateRequest) {
-        return loanService.preLiquidateLoan(loanPreLiquidateRequest);
+    public PreLiquidateLoanResponse preLiquidateLoan(@RequestBody @Valid PreLiquidateLoanRequest preLiquidateLoanRequest) {
+        return loanService.preLiquidateLoan(preLiquidateLoanRequest);
     }
 }

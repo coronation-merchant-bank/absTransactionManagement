@@ -1,10 +1,8 @@
-package com.abs.transactionManagement.cloan;
+package com.abs.transactionManagement.loan;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
-
-import java.math.BigInteger;
 
 @Getter
 @Setter
@@ -13,8 +11,9 @@ import java.math.BigInteger;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class DepositLiquidationRequest {
-    private String depositAccountId;
-    private String repayAccountId;
-    private BigInteger amount;
+public class PreLiquidateLoanResponse {
+    private String requestId;
+    private String status;
+    private String code;
+    private String message;
 }
