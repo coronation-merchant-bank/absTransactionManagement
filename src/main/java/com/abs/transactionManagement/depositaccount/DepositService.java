@@ -1,5 +1,7 @@
 package com.abs.transactionManagement.depositaccount;
 
+import com.abs.transactionManagement.config.BaseResponse;
+
 public interface DepositService {
-    CloseDepositAccResponse closeDepositAccount(CloseDepositAccRequest closeDepositAccRequest);
+    BaseResponse<CloseDepositAccResponse> closeDepositAccount(CloseDepositAccRequest closeDepositAccRequest);
 }

@@ -1,5 +1,6 @@
 package com.abs.transactionManagement.depositaccount;
 
+import com.abs.transactionManagement.config.BaseResponse;
 import com.abs.transactionManagement.exceptionhandler.CustomException;
 import com.abs.transactionManagement.finacle.FinacleUtil;
 import com.abs.transactionManagement.services.HttpService;
@@ -34,7 +35,7 @@ public class DepositServiceImpl implements DepositService {
     private String soapAction;
 
     @Override
-    public CloseDepositAccResponse closeDepositAccount(CloseDepositAccRequest closeDepositAccRequest) {
+    public BaseResponse<CloseDepositAccResponse> closeDepositAccount(CloseDepositAccRequest closeDepositAccRequest) {
         String requestId = UUID.randomUUID().toString();
         String xmlRequest = buildCloseDepositAccXmlRequest(closeDepositAccRequest, requestId);
         log.info("XML Request :: {}", xmlRequest);
@@ -57,7 +58,12 @@ public class DepositServiceImpl implements DepositService {
         CloseDepositAccResponse response = extractCloseDepositAccResponse(xmlResponse);
         response.setRequestId(requestId);
 
-        return response;
+        return BaseResponse.<CloseDepositAccResponse>builder()
+                .flag(true)
+                .code("00")
+                .message(response.getMessage())
+                .data(response)
+                .build();
     }
 
     private String buildCloseDepositAccXmlRequest(CloseDepositAccRequest closeDepositAccRequest, String requestId) {

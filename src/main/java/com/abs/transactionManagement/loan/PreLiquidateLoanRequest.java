@@ -14,8 +14,6 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PreLiquidateLoanRequest {
-    @NotNull(message = "requestId is required")
-    private String requestId;
     @NotBlank(message = "loanAccount")
     private String loanAccount;
     @NotBlank(message = "fundAccount")

@@ -1,5 +1,6 @@
 package com.abs.transactionManagement.loan;
 
+import com.abs.transactionManagement.config.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,7 +15,7 @@ public class LoanController {
     private final LoanService loanService;
 
     @PostMapping("/pre-liquidate")
-    public PreLiquidateLoanResponse preLiquidateLoan(@RequestBody @Valid PreLiquidateLoanRequest preLiquidateLoanRequest) {
+    public BaseResponse<PreLiquidateLoanResponse> preLiquidateLoan(@RequestBody @Valid PreLiquidateLoanRequest preLiquidateLoanRequest) {
         return loanService.preLiquidateLoan(preLiquidateLoanRequest);
     }
 }

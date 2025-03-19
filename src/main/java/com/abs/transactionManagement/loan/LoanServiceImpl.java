@@ -1,8 +1,9 @@
 package com.abs.transactionManagement.loan;
 
-import com.abs.transactionManagement.config.CustomRestTemplate;
+import com.abs.transactionManagement.config.BaseResponse;
 import com.abs.transactionManagement.exceptionhandler.CustomException;
 import com.abs.transactionManagement.finacle.FinacleUtil;
+import com.abs.transactionManagement.services.HttpService;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
@@ -25,7 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class LoanServiceImpl implements LoanService {
-    private final RestTemplate restTemplate = CustomRestTemplate.restTemplate();
+    private final HttpService httpService;
     private final Gson gson;
 
     @Value("${finacle.soap.address}")
@@ -35,18 +35,17 @@ public class LoanServiceImpl implements LoanService {
     private String soapAction;
 
     @Override
-    public PreLiquidateLoanResponse preLiquidateLoan(PreLiquidateLoanRequest preLiquidateLoanRequest) {
+    public BaseResponse<PreLiquidateLoanResponse> preLiquidateLoan(PreLiquidateLoanRequest preLiquidateLoanRequest) {
         String requestId = UUID.randomUUID().toString();
         String xmlRequest = buildPreLiquidateXmlRequest(preLiquidateLoanRequest, requestId);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
         headers.set("SOAPAction", soapAction);
-        HttpEntity<String> httpEntity = new HttpEntity<>(xmlRequest, headers);
-        ResponseEntity<String> responseEntity = restTemplate.exchange(
+        ResponseEntity<String> responseEntity = httpService.post(
+                xmlRequest,
+                headers,
                 soapAddress,
-                HttpMethod.POST,
-                httpEntity,
-                String.class
+                60
         );
 
         log.info("Finacle Pre-liquidate Loan Response :: httpStatus: {}, body: {}",
@@ -58,7 +57,12 @@ public class LoanServiceImpl implements LoanService {
         PreLiquidateLoanResponse response = convertLoanXmlResponseToJson(xmlResponse);
         response.setRequestId(requestId);
 
-        return response;
+        return BaseResponse.<PreLiquidateLoanResponse>builder()
+                .flag(true)
+                .code("00")
+                .message(response.getMessage())
+                .data(response)
+                .build();
     }
 
     private String buildPreLiquidateXmlRequest(PreLiquidateLoanRequest preLiquidateLoanRequest, String requestId) {

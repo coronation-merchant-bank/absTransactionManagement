@@ -12,8 +12,8 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PreLiquidateLoanResponse {
-    private String requestId;
     private String status;
     private String code;
     private String message;
+    private String requestId;
 }
